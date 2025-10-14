@@ -6,10 +6,17 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: web-scraper-app
+    ports:
+      # Streamlit UI port
+      - "8501:8501"
     volumes:
+      # Excel files input
       - /home/web-scraper/excel_files:/app/excel_files
+      # Output directory
       - /home/web-scraper/output:/app/output
+      # Logs directory
       - /home/web-scraper/logs:/app/logs
+      # Shared memory for Chrome
       - /dev/shm:/dev/shm
     environment:
       - DISPLAY=:99
@@ -25,10 +32,14 @@ services:
         reservations:
           cpus: '2'
           memory: 6G
-    stdin_open: true
-    tty: true
     networks:
       - scraper-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 networks:
   scraper-network:
