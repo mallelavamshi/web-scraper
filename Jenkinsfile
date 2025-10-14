@@ -12,7 +12,7 @@ pipeline {
             steps {
                 echo 'Checking out code from GitHub...'
                 git branch: 'main',
-                    url: 'https://github.com/yourusername/web-scraper.git',
+                    url: 'https://github.com/mallelavamshi/web-scraper.git',
                     credentialsId: 'github-credentials'
             }
         }
