@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  web-scraper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: web-scraper-app
+    volumes:
+      - /home/web-scraper/excel_files:/app/excel_files
+      - /home/web-scraper/output:/app/output
+      - /home/web-scraper/logs:/app/logs
+      - /dev/shm:/dev/shm
+    environment:
+      - DISPLAY=:99
+      - PYTHONUNBUFFERED=1
+      - CHROME_BIN=/usr/bin/google-chrome
+    restart: unless-stopped
+    shm_size: 4gb
+    deploy:
+      resources:
+        limits:
+          cpus: '3.5'
+          memory: 12G
+        reservations:
+          cpus: '2'
+          memory: 6G
+    stdin_open: true
+    tty: true
+    networks:
+      - scraper-network
+
+networks:
+  scraper-network:
+    driver: bridge
