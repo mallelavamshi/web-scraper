@@ -5,7 +5,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies (updated for Debian Trixie)
+# Install system dependencies (fixed for Debian Trixie)
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
@@ -46,7 +46,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
-COPY scrape_zip_optimized.py scrape_zip.py
+# Keep original filename for scraper (scrape_zip_optimized.py stays as is)
+COPY scrape_zip_optimized.py .
 COPY streamlit_app.py .
 
 # Create necessary directories
