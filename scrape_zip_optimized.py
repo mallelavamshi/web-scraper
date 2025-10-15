@@ -163,41 +163,57 @@ def search_query(driver, query: str, thread_id=0):
         return False
 
 def scroll_results(driver, max_scrolls=10, thread_id=0):
-    """Optimized scrolling with intelligent detection"""
+    """Enhanced scrolling with multiple fallback methods"""
     safe_print(f"[Thread-{thread_id}] Scrolling results...")
-
+    
     try:
-        scrollable = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, 'div[role="feed"]'))
-        )
-
+        time.sleep(2)
         previous_height = 0
         scroll_count = 0
         no_change_count = 0
-
+        
         for i in range(max_scrolls):
-            driver.execute_script('arguments[0].scrollTop = arguments[0].scrollHeight', scrollable)
-            time.sleep(random.uniform(1.2, 1.8))
-
-            current_height = driver.execute_script('return arguments[0].scrollTop', scrollable)
-
-            if current_height == previous_height:
-                no_change_count += 1
-                if no_change_count >= 2:
-                    safe_print(f"[Thread-{thread_id}] ✓ Reached end at scroll {i + 1}")
-                    break
-            else:
-                no_change_count = 0
-
-            previous_height = current_height
-            scroll_count += 1
-
-        safe_print(f"[Thread-{thread_id}] ✓ Scrolled {scroll_count} times")
-        time.sleep(1)
+            try:
+                # Method 1: Scroll window instead of element
+                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(1)
+                
+                # Method 2: Send PAGE_DOWN key
+                body = driver.find_element(By.TAG_NAME, 'body')
+                body.send_keys(Keys.PAGE_DOWN)
+                time.sleep(1)
+                
+                # Method 3: Re-find feed element each time (avoid stale)
+                try:
+                    scrollable = driver.find_element(By.CSS_SELECTOR, 'div[role="feed"]')
+                    driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", scrollable)
+                except:
+                    pass
+                
+                time.sleep(random.uniform(1.2, 1.8))
+                
+                # Check progress
+                new_height = driver.execute_script("return document.body.scrollHeight")
+                if new_height == previous_height:
+                    no_change_count += 1
+                    if no_change_count >= 3:
+                        break
+                else:
+                    no_change_count = 0
+                previous_height = new_height
+                scroll_count += 1
+                
+            except Exception as e:
+                logger.warning(f"[Thread-{thread_id}] Scroll iteration {i} error: {e}")
+                continue
+        
+        safe_print(f"[Thread-{thread_id}] Scrolled {scroll_count} times")
         return True
+        
     except Exception as e:
         logger.error(f"[Thread-{thread_id}] Scroll error: {e}")
         return False
+
 
 def extract_business_details(driver, card, index, thread_id=0):
     """Extract business details with robust error handling"""
