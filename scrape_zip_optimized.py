@@ -357,42 +357,46 @@ def parse_cards_with_details(driver, thread_id=0):
         return []
 
 def scrape_zipcode(zipcode, base_query, folder_name, thread_id=0):
-    """Scrape a single zipcode - thread worker function"""
+    """Extract initial visible results - NO scrolling required"""
     query = f"{base_query} {zipcode}"
-
+    
     safe_print(f"[Thread-{thread_id}] {'='*50}")
     safe_print(f"[Thread-{thread_id}] Starting: '{query}'")
     safe_print(f"[Thread-{thread_id}] {'='*50}")
-
+    
     driver = None
     start_time = time.time()
-
+    
     try:
         driver = init_driver(thread_id)
-
+        
+        # Search
         if not search_query(driver, query, thread_id):
             return {"zipcode": zipcode, "count": 0, "status": "search_failed"}
-
-        if not scroll_results(driver, max_scrolls=10, thread_id=thread_id):
-            return {"zipcode": zipcode, "count": 0, "status": "scroll_failed"}
-
+        
+        # Wait longer for all initial results to load
+        safe_print(f"[Thread-{thread_id}] Waiting for results...")
+        time.sleep(8)  # Give page time to fully render
+        
+        # Extract visible results (10-20 businesses)
         data = parse_cards_with_details(driver, thread_id)
-
+        
         elapsed = time.time() - start_time
-
+        
         if data:
             safe_query = f"{base_query.replace(' ', '_')}_{zipcode}"
             save_data_to_excel(data, folder_name, safe_query, thread_id)
             safe_print(f"[Thread-{thread_id}] ✓ Completed {zipcode}: {len(data)} records in {elapsed:.1f}s")
             return {"zipcode": zipcode, "count": len(data), "status": "success", "time": elapsed}
         else:
-            safe_print(f"[Thread-{thread_id}] ⚠ No data for {zipcode} ({elapsed:.1f}s)")
+            safe_print(f"[Thread-{thread_id}] ⚠ No data for {zipcode}")
             return {"zipcode": zipcode, "count": 0, "status": "no_data", "time": elapsed}
-
+            
     except Exception as e:
         elapsed = time.time() - start_time
         logger.error(f"[Thread-{thread_id}] Error with {zipcode}: {e}")
         return {"zipcode": zipcode, "count": 0, "status": "error", "error": str(e), "time": elapsed}
+        
     finally:
         if driver:
             try:
@@ -400,6 +404,7 @@ def scrape_zipcode(zipcode, base_query, folder_name, thread_id=0):
                 time.sleep(0.5)
             except:
                 pass
+
 
 def save_data_to_excel(data, folder_name, query, thread_id=0):
     """Thread-safe Excel file saving"""
